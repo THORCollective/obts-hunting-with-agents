@@ -1,0 +1,45 @@
+// H-0004: Unsigned / ad-hoc code execution and persistence on macOS
+// Run each with: athf splunk search '<SPL>' --earliest 0 --count 200 --format json
+
+// 1. Signer sweep (exec targets)
+index=macos es_event=exec target_signer!=apple
+| lookup mac_hosts host OUTPUT host_short
+| stats count values(host_short) as hosts values(target_team_id) as team values(target_signing_id) as sid values(process_path) as parent by target_signer target_path
+
+// 2. Signer sweep (subject side; catches processes already running before the window)
+index=macos process_signer!=apple
+| lookup mac_hosts host OUTPUT host_short
+| stats count values(es_event) as events values(host_short) as hosts values(process_team_id) as team by process_signer process_path
+
+// 3. Signed interpreters / LOLBins with staged or unsigned content
+index=macos es_event=exec (cmdline="*/tmp/*" OR cmdline="*/Users/Shared/*" OR cmdline="*Downloads*" OR cmdline="*curl*" OR cmdline="*chmod*" OR cmdline="*xattr*" OR cmdline="*codesign*" OR cmdline="*launchctl*" OR cmdline="*osascript*" OR cmdline="*base64*" OR cmdline="*LaunchAgents*" OR cmdline="*LaunchDaemons*" OR cmdline="*spctl*" OR cmdline="*python*" OR cmdline="*.sh*" OR cmdline="*postinstall*")
+| lookup mac_hosts host OUTPUT host_short | eval t=strftime(_time,"%H:%M:%S")
+| table t host_short pid ppid process_path target_path target_signer cmdline cwd
+
+// 4. Persistence: BTM adds and file creates
+index=macos (es_event=btm_launch_item_add OR es_event=create)
+| lookup mac_hosts host OUTPUT host_short | eval t=strftime(_time,"%H:%M:%S")
+| table t host_short es_event pid process_path process_signer file_path btm_item_url btm_item_type btm_executable_path btm_instigator_pid btm_instigator_path btm_instigator_signing_id
+
+// 5. Ancestry pivot (fill in HOST and PIDS)
+index=macos host=<HOST>* (pid IN (<PIDS>) OR ppid IN (<PIDS>) OR child_pid IN (<PIDS>))
+| eval t=strftime(_time,"%H:%M:%S") | sort _time
+| table t es_event pid ppid uid process_path child_pid target_path target_signer cmdline file_path
+
+// 6. Credential store / persistence path touches
+index=macos es_event IN (write,create,open) (file_path="*/LaunchAgents/*" OR file_path="*/LaunchDaemons/*" OR file_path="*.zshrc" OR file_path="*.zprofile" OR file_path="*crontab*" OR file_path="*/periodic/*" OR file_path="*login.keychain*" OR file_path="*Cookies*" OR file_path="*Login Data*")
+| lookup mac_hosts host OUTPUT host_short
+| stats count min(_time) as first by host_short es_event process_path process_signer file_path
+
+// 7. ES -> Zeek join (host_ip from mac_hosts; epoch window around ES event; 2024-06-11 14:00:00Z = 1718114400)
+index=zeek id.orig_h=<HOST_IP> earliest=<EPOCH-5> latest=<EPOCH+60>
+| eval t=strftime(_time,"%H:%M:%S") | sort _time
+| table t sourcetype id.resp_h id.resp_p query server_name orig_bytes resp_bytes duration
+
+// 8. Zeek single-host DNS rarity (oneshot caps at 100 rows; page with where query>"<last>")
+index=zeek sourcetype=bro:dns:json NOT query="*.in-addr.arpa"
+| stats dc(id.orig_h) as hosts values(id.orig_h) as src count by query | where hosts=1 | sort query
+
+// 9. IOC sweep
+index=zeek ("193.42.33.14" OR "45.128.199.72" OR "macos-analytics.top" OR "ipcheck-beaver.cc")
+| stats count min(_time) as first by id.orig_h id.resp_h sourcetype

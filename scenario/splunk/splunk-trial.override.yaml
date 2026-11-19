@@ -1,0 +1,5 @@
+# Use Splunk's built-in Enterprise trial instead of Free, so token auth (needed by `athf splunk`) works.
+services:
+  splunk:
+    environment:
+      SPLUNK_LICENSE_URI: ""

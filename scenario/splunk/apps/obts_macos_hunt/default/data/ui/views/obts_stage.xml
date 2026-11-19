@@ -1,0 +1,2231 @@
+<dashboard version="2" theme="light">
+  <label>OBTS: Hunting macOS with synthetic eslogger</label>
+  <description>Stage dashboard for the EvidenceForge macOS demo.</description>
+  <definition><![CDATA[
+{
+  "title": "OBTS: Hunting macOS with synthetic eslogger",
+  "description": "Stage dashboard for the EvidenceForge macOS demo. Each tab is one hunt; every panel shows its saved search's SPL above the results, run over all time.",
+  "theme": "light",
+  "dataSources": {
+    "ds_ov_mix": {
+      "type": "ds.search",
+      "name": "OBTS 00 - ES event mix per Mac",
+      "options": {
+        "query": "| savedsearch \"OBTS 00 - ES event mix per Mac\" | table host_short exec fork exit open close write create btm_launch_item_add openssh_login lw_session_lock",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_ov_stack": {
+      "type": "ds.search",
+      "name": "OBTS 01 - Stack non-Apple code that executed",
+      "options": {
+        "query": "| savedsearch \"OBTS 01 - Stack non-Apple code that executed\"",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_amos_chain": {
+      "type": "ds.search",
+      "name": "OBTS AMOS 5 - Full AMOS chain on one host",
+      "options": {
+        "query": "| savedsearch \"OBTS AMOS 5 - Full AMOS chain on one host\" | eval time=strftime(_time, \"%H:%M:%S.%3N\") | sort 0 _time | eval subject=process_path, detail=case(es_event==\"exec\", cmdline, es_event==\"open\" OR es_event==\"close\", file_path, true(), \"\") | table time es_event pid ppid subject detail",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_amos_1": {
+      "type": "ds.search",
+      "name": "OBTS AMOS 1 - Ad-hoc signed app bundle launched by launchd",
+      "options": {
+        "query": "| savedsearch \"OBTS AMOS 1 - Ad-hoc signed app bundle launched by launchd\" | eval time=strftime(_time, \"%H:%M:%S.%3N\") | table time host_short target_path target_team_id uid",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_amos_1b": {
+      "type": "ds.search",
+      "name": "OBTS AMOS 1b - Ad-hoc launchd jobs by install location and prevalence",
+      "options": {
+        "query": "| savedsearch \"OBTS AMOS 1b - Ad-hoc launchd jobs by install location and prevalence\" | table location target_path macs on",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_amos_3": {
+      "type": "ds.search",
+      "name": "OBTS AMOS 3 - Keychain opened by non-Apple code",
+      "options": {
+        "query": "| savedsearch \"OBTS AMOS 3 - Keychain opened by non-Apple code\" | eval time=strftime(_time, \"%H:%M:%S.%3N\") | table time host_short process_path process_signer process_team_id",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_amos_3b": {
+      "type": "ds.search",
+      "name": "OBTS AMOS 3b - Keychain opened by code with no Team ID",
+      "options": {
+        "query": "| savedsearch \"OBTS AMOS 3b - Keychain opened by code with no Team ID\" | table lead process_path process_signer process_team_id on",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_amos_4": {
+      "type": "ds.search",
+      "name": "OBTS AMOS 4 - Keychain reader egress in Zeek",
+      "options": {
+        "query": "| savedsearch \"OBTS AMOS 4 - Keychain reader egress in Zeek\" | eval first_seen=substr(first_seen, 12) | table first_seen seconds_after_keychain src_ip id.resp_h id.resp_p sni bytes_out bytes_in keychain_reader",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_bt_chain": {
+      "type": "ds.search",
+      "name": "OBTS BeaverTail 2 - node -> sh -c -> node chain",
+      "options": {
+        "query": "| savedsearch \"OBTS BeaverTail 2 - node -> sh -c -> node chain\" | eval time=strftime(_time, \"%H:%M:%S.%3N\") | sort 0 _time | table time host_short sh_cmd child_cmd cwd",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_bt_1": {
+      "type": "ds.search",
+      "name": "OBTS BeaverTail 1 - Package-manager lifecycle shells",
+      "options": {
+        "query": "| savedsearch \"OBTS BeaverTail 1 - Package-manager lifecycle shells\" | eval time=strftime(_time, \"%H:%M:%S.%3N\") | table time host_short cmdline cwd",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_bt_3": {
+      "type": "ds.search",
+      "name": "OBTS BeaverTail 3 - postinstall beacon in Zeek",
+      "options": {
+        "query": "| savedsearch \"OBTS BeaverTail 3 - postinstall beacon in Zeek\" | eval time=strftime(_time, \"%H:%M:%S.%3N\") | table time seconds_after src_ip sourcetype query server_name id.resp_h id.resp_p",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_bt_3b": {
+      "type": "ds.search",
+      "name": "OBTS BeaverTail 3b - Where every lifecycle-script node went",
+      "options": {
+        "query": "| savedsearch \"OBTS BeaverTail 3b - Where every lifecycle-script node went\" | eval script_time=substr(script_time, 12), first_lookup=substr(first_lookup, 12) | table mac script_time query first_lookup",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_cm_join": {
+      "type": "ds.search",
+      "name": "OBTS CloudMensis 3 - Plist create joined to BTM instigator",
+      "options": {
+        "query": "| savedsearch \"OBTS CloudMensis 3 - Plist create joined to BTM instigator\" | table host_short masquerade plist writer_path writer_signer",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_cm_1": {
+      "type": "ds.search",
+      "name": "OBTS CloudMensis 1 - Plist created in a user LaunchAgents dir",
+      "options": {
+        "query": "| savedsearch \"OBTS CloudMensis 1 - Plist created in a user LaunchAgents dir\" | eval time=strftime(_time, \"%H:%M:%S.%3N\") | table time host_short file_path process_path process_signer",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_cm_2": {
+      "type": "ds.search",
+      "name": "OBTS CloudMensis 2 - BTM launch item added",
+      "options": {
+        "query": "| savedsearch \"OBTS CloudMensis 2 - BTM launch item added\" | eval time=strftime(_time, \"%H:%M:%S.%3N\") | table time host_short btm_item_url btm_executable_path btm_instigator_path",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_ssh_1": {
+      "type": "ds.search",
+      "name": "OBTS SSH 1 - openssh login/logout sessions",
+      "options": {
+        "query": "| savedsearch \"OBTS SSH 1 - openssh login/logout sessions\" | eval time=strftime(_time, \"%H:%M:%S.%3N\") | eval duration=round(duration, 1) | table time host_short ssh_user ssh_src ssh_success duration eventcount",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    },
+    "ds_ssh_2": {
+      "type": "ds.search",
+      "name": "OBTS SSH 2 - SSH sessions in Zeek alongside ES",
+      "options": {
+        "query": "| savedsearch \"OBTS SSH 2 - SSH sessions in Zeek alongside ES\" | eval time=strftime(_time, \"%H:%M:%S.%3N\") | eval duration=round(duration, 1) | table time id.orig_h src_mac id.resp_h dest_mac duration conn_state orig_bytes resp_bytes",
+        "queryParameters": {
+          "earliest": "0",
+          "latest": "now"
+        }
+      }
+    }
+  },
+  "visualizations": {
+    "viz_ov_intro": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Six Macs, two hours of Endpoint Security\nSynthetic `eslogger` NDJSON from **EvidenceForge**, plus Zeek from the core sensor. ES has no network events, so every network pivot goes host \u2192 IP \u2192 Zeek.",
+        "fontSize": "large"
+      }
+    },
+    "viz_ov_mix_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS 00 - ES event mix per Mac**\n```\nindex=macos sourcetype=macos:eslogger\n| chart count over host_short by es_event\n```"
+      }
+    },
+    "viz_ov_mix": {
+      "type": "splunk.table",
+      "title": "ES event mix per Mac",
+      "description": "Counts per event type (OBTS 00).",
+      "dataSources": {
+        "primary": "ds_ov_mix"
+      },
+      "options": {
+        "count": 10,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_ov_stack_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS 01 - Stack non-Apple code that executed**\n```\nindex=macos sourcetype=macos:eslogger es_event=exec target_signer!=apple\n| stats count dc(host_short) AS hosts values(host_short) AS on values(process_name) AS launched_by by target_signer target_team_id target_path\n| sort target_signer count\n```"
+      }
+    },
+    "viz_ov_stack": {
+      "type": "splunk.table",
+      "title": "Non-Apple code that executed",
+      "description": "Start here: stack everything that isn't a platform binary (OBTS 01).",
+      "dataSources": {
+        "primary": "ds_ov_stack"
+      },
+      "options": {
+        "count": 10,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_amos_chain_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS AMOS 5 - Full AMOS chain on one host**\n```\nindex=macos sourcetype=macos:eslogger host_short=MAC-DESIGN-01\n    [ search index=macos sourcetype=macos:eslogger es_event=exec process_path=\"/sbin/launchd\" target_signer=adhoc\n      | stats values(target_pid) AS p | eval search=\"(pid IN (\" . mvjoin(p, \",\") . \") OR ppid IN (\" . mvjoin(p, \",\") . \"))\" | fields search ]\n| table _time es_event pid ppid process_path target_path cmdline file_path\n```"
+      }
+    },
+    "viz_amos_chain": {
+      "type": "splunk.table",
+      "title": "AMOS: the whole chain on MAC-DESIGN-01",
+      "description": "launchd \u2192 ad-hoc dropper \u2192 osascript fake password prompt \u2192 login.keychain-db (AMOS 5).",
+      "dataSources": {
+        "primary": "ds_amos_chain"
+      },
+      "options": {
+        "count": 10,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_amos_1_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS AMOS 1 - Ad-hoc signed app bundle launched by launchd**\n```\nindex=macos sourcetype=macos:eslogger es_event=exec process_path=\"/sbin/launchd\" target_signer=adhoc target_team_id=none\n| table _time host_short uid target_pid target_path target_signing_id target_team_id cmdline\n```"
+      }
+    },
+    "viz_amos_1": {
+      "type": "splunk.table",
+      "title": "Naive: ad-hoc signed jobs launched by launchd",
+      "description": "Catches the dropper and a Homebrew postgres decoy (AMOS 1).",
+      "dataSources": {
+        "primary": "ds_amos_1"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_amos_1b_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS AMOS 1b - Ad-hoc launchd jobs by install location and prevalence**\n```\nindex=macos sourcetype=macos:eslogger es_event=exec process_path=\"/sbin/launchd\" target_signer=adhoc\n| eval location=case(match(target_path, \"^/opt/homebrew/\"), \"homebrew\", match(target_path, \"^/Applications/.+\\.app/\"), \"app bundle\", match(target_path, \"^/Users/Shared/\"), \"/Users/Shared\", true(), \"other\")\n| stats count dc(host_short) AS macs values(host_short) AS on values(cmdline) AS cmdline by location target_path\n| sort macs location\n```"
+      }
+    },
+    "viz_amos_1b": {
+      "type": "splunk.table",
+      "title": "Refined: by install location and prevalence",
+      "description": "An app bundle on one Mac vs. a Homebrew service (AMOS 1b).",
+      "dataSources": {
+        "primary": "ds_amos_1b"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_amos_3_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS AMOS 3 - Keychain opened by non-Apple code**\n```\nindex=macos sourcetype=macos:eslogger es_event=open file_path=\"*/Library/Keychains/*\" process_platform=false\n| table _time host_short pid process_path process_signer process_team_id file_path\n```"
+      }
+    },
+    "viz_amos_3": {
+      "type": "splunk.table",
+      "title": "Naive: keychain opened by non-Apple code",
+      "description": "Also catches Google Chrome, a Developer ID app (AMOS 3).",
+      "dataSources": {
+        "primary": "ds_amos_3"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_amos_3b_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS AMOS 3b - Keychain opened by code with no Team ID**\n```\nindex=macos sourcetype=macos:eslogger es_event=open file_path=\"*/Library/Keychains/*\" process_platform=false\n| stats count values(host_short) AS on by process_path process_signer process_team_id\n| eval lead=if(process_team_id==\"none\", \"investigate\", \"known vendor\")\n```"
+      }
+    },
+    "viz_amos_3b": {
+      "type": "splunk.table",
+      "title": "Refined: keychain opened by code with no Team ID",
+      "description": "lead: the ad-hoc dropper is investigate, Chrome is known vendor (AMOS 3b).",
+      "dataSources": {
+        "primary": "ds_amos_3b"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_amos_4_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS AMOS 4 - Keychain reader egress in Zeek**\n```\nindex=macos sourcetype=macos:eslogger es_event=open file_path=\"*/Library/Keychains/*\" process_platform=false process_team_id=none\n| eval src_ip=host_ip, keychain_time=_time, keychain_reader=process_path\n| fields src_ip keychain_time keychain_reader\n| append [ search index=zeek (sourcetype=bro:conn:json OR sourcetype=bro:ssl:json) NOT id.resp_h=10.* NOT id.resp_p=53 | eval src_ip='id.orig_h' ]\n| eventstats values(keychain_time) AS keychain_times values(keychain_reader) AS keychain_reader by src_ip\n| where isnotnull(uid) AND isnotnull(keychain_times)\n| eval keychain_time=mvindex(mvmap(keychain_times, if(_time - keychain_times >= -30 AND _time - keychain_times <= 120, keychain_times, null())), 0)\n| where isnotnull(keychain_time)\n| stats min(_time) AS first_seen values(server_name) AS sni sum(orig_bytes) AS bytes_out sum(resp_bytes) AS bytes_in values(keychain_reader) AS keychain_reader min(keychain_time) AS keychain_time by uid src_ip id.resp_h id.resp_p\n| eval seconds_after_keychain=round(first_seen-keychain_time, 3), first_seen=strftime(first_seen, \"%F %T.%3N\")\n| table first_seen seconds_after_keychain src_ip id.resp_h id.resp_p sni bytes_out bytes_in uid keychain_reader\n```"
+      }
+    },
+    "viz_amos_4": {
+      "type": "splunk.table",
+      "title": "Pivot: egress after the keychain read (Zeek)",
+      "description": "Host \u2192 IP \u2192 Zeek, matched by time window (AMOS 4).",
+      "dataSources": {
+        "primary": "ds_amos_4"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_bt_chain_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS BeaverTail 2 - node -> sh -c -> node chain**\n```\nindex=macos sourcetype=macos:eslogger es_event=exec process_path=\"/bin/sh\" target_name=node\n| rename ppid AS sh_pid, cmdline AS child_cmd, target_pid AS child_pid\n| join type=inner host sh_pid\n    [ search index=macos sourcetype=macos:eslogger es_event=exec process_name=node target_path=\"/bin/sh\"\n      | rename target_pid AS sh_pid, cmdline AS sh_cmd, ppid AS npm_pid | fields host sh_pid sh_cmd npm_pid ]\n| join type=left host npm_pid\n    [ search index=macos sourcetype=macos:eslogger es_event=exec target_name=node\n      | rename target_pid AS npm_pid, cmdline AS npm_cmd | fields host npm_pid npm_cmd ]\n| table _time host_short host_ip npm_pid npm_cmd sh_pid sh_cmd child_pid child_cmd cwd\n```"
+      }
+    },
+    "viz_bt_chain": {
+      "type": "splunk.table",
+      "title": "BeaverTail: npm lifecycle script spawns node",
+      "description": "npm \u2192 sh -c \u2192 node from install scripts (BeaverTail 2).",
+      "dataSources": {
+        "primary": "ds_bt_chain"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_bt_1_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS BeaverTail 1 - Package-manager lifecycle shells**\n```\nindex=macos sourcetype=macos:eslogger es_event=exec process_name=node target_path IN (\"/bin/sh\", \"/bin/bash\", \"/bin/zsh\")\n| table _time host_short ppid target_pid cmdline cwd\n```"
+      }
+    },
+    "viz_bt_1": {
+      "type": "splunk.table",
+      "title": "Package-manager lifecycle shells",
+      "description": "Every sh -c spawned by npm (BeaverTail 1).",
+      "dataSources": {
+        "primary": "ds_bt_1"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_bt_3_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS BeaverTail 3 - postinstall beacon in Zeek**\n```\nindex=macos sourcetype=macos:eslogger es_event=exec process_path=\"/bin/sh\" target_name=node cmdline=\"*postinstall*\"\n| eval src_ip=host_ip, postinstall_time=_time, postinstall=cmdline\n| fields src_ip postinstall_time postinstall\n| append [ search index=zeek ((sourcetype=bro:dns:json NOT query=\"*.test\") OR (sourcetype=bro:conn:json NOT id.resp_h=10.* NOT id.resp_p=53) OR sourcetype=bro:ssl:json) | eval src_ip='id.orig_h' ]\n| eventstats min(postinstall_time) AS postinstall_time values(postinstall) AS postinstall by src_ip\n| where isnotnull(uid) AND _time>=postinstall_time AND _time<=postinstall_time+120\n| eval seconds_after=round(_time-postinstall_time, 3)\n| table _time seconds_after sourcetype src_ip query answers id.resp_h id.resp_p server_name orig_bytes resp_bytes uid postinstall\n| sort _time\n```"
+      }
+    },
+    "viz_bt_3": {
+      "type": "splunk.table",
+      "title": "Naive: Zeek traffic right after the postinstall",
+      "description": "The window also catches the developer's browsing (BeaverTail 3).",
+      "dataSources": {
+        "primary": "ds_bt_3"
+      },
+      "options": {
+        "count": 10,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_bt_3b_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS BeaverTail 3b - Where every lifecycle-script node went**\n```\nindex=macos sourcetype=macos:eslogger es_event=exec process_path=\"/bin/sh\" target_name=node\n| eval src_ip=host_ip, script_time=_time, script=cmdline\n| fields src_ip script_time script host_short\n| append [ search index=zeek sourcetype=bro:dns:json NOT query=\"*.test\" NOT query=\"*.arpa\" | eval src_ip='id.orig_h' ]\n| eventstats values(host_short) AS mac values(script_time) AS script_times by src_ip\n| where isnotnull(query) AND isnotnull(script_times)\n| eval script_time=mvindex(mvmap(script_times, if(_time - script_times >= 0 AND _time - script_times <= 15, script_times, null())), 0)\n| where isnotnull(script_time)\n| stats min(_time) AS first_lookup values(answers) AS answers by mac script_time query\n| eval script_time=strftime(script_time, \"%F %T.%3N\")\n| eval first_lookup=strftime(first_lookup, \"%F %T.%3N\")\n```"
+      }
+    },
+    "viz_bt_3b": {
+      "type": "splunk.table",
+      "title": "Refined: where each lifecycle-script node went",
+      "description": "First lookup per script: api.ipcheck-beaver.cc vs. bcrypt's nodejs.org (BeaverTail 3b).",
+      "dataSources": {
+        "primary": "ds_bt_3b"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_cm_join_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS CloudMensis 3 - Plist create joined to BTM instigator**\n```\nindex=macos sourcetype=macos:eslogger ((es_event=create file_path=\"*/Library/LaunchAgents/*\") OR es_event=btm_launch_item_add)\n| eval writer_pid=coalesce(btm_instigator_pid, pid), writer_path=coalesce(btm_instigator_path, process_path)\n| eval plist=coalesce(file_path, urldecode(replace(btm_item_url, \"^file://\", \"\"))), writer_signer=if(es_event==\"create\", process_signer, null())\n| stats min(_time) AS first max(_time) AS last values(es_event) AS es_events values(btm_executable_path) AS runs values(writer_signer) AS writer_signer by host_short writer_pid writer_path plist\n| eval masquerade=if(match(plist, \"/com\\.apple\\.[^/]+\\.plist$\") AND NOT match(writer_path, \"^/(System|usr|sbin|bin)/\"), \"yes\", \"no\")\n| eval first=strftime(first, \"%F %T.%3N\"), last=strftime(last, \"%F %T.%3N\")\n```"
+      }
+    },
+    "viz_cm_join": {
+      "type": "splunk.table",
+      "title": "CloudMensis: LaunchAgent plist joined to its BTM registration",
+      "description": "Homebrew postgres decoy vs. com.apple.cloudsyncd masquerading as Apple (CloudMensis 3).",
+      "dataSources": {
+        "primary": "ds_cm_join"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_cm_1_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS CloudMensis 1 - Plist created in a user LaunchAgents dir**\n```\nindex=macos sourcetype=macos:eslogger es_event=create file_path=\"/Users/*\"\n| where match(file_path, \"^/Users/[^/]+/Library/LaunchAgents/[^/]+\\.plist$\")\n| table _time host_short pid process_path process_signer process_team_id file_path\n```"
+      }
+    },
+    "viz_cm_1": {
+      "type": "splunk.table",
+      "title": "Plist created in a user LaunchAgents dir",
+      "description": "ES create events (CloudMensis 1).",
+      "dataSources": {
+        "primary": "ds_cm_1"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_cm_2_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS CloudMensis 2 - BTM launch item added**\n```\nindex=macos sourcetype=macos:eslogger es_event=btm_launch_item_add\n| table _time host_short process_path btm_item_type btm_item_url btm_executable_path btm_instigator_pid btm_instigator_path btm_instigator_signing_id\n```"
+      }
+    },
+    "viz_cm_2": {
+      "type": "splunk.table",
+      "title": "BTM launch item added",
+      "description": "btm_launch_item_add, macOS 13+ (CloudMensis 2).",
+      "dataSources": {
+        "primary": "ds_cm_2"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_ssh_intro": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "## Red herring: an admin SSH session\nLooks like lateral movement; it's an admin session running real commands. ES `openssh_login` pairs with the Zeek conn rows.",
+        "fontSize": "large"
+      }
+    },
+    "viz_ssh_1_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS SSH 1 - openssh login/logout sessions**\n```\nindex=macos sourcetype=macos:eslogger es_event IN (openssh_login, openssh_logout)\n| transaction host ssh_user ssh_src startswith=eval(es_event=\"openssh_login\") endswith=eval(es_event=\"openssh_logout\")\n| table _time host_short ssh_user ssh_src ssh_success duration eventcount\n```"
+      }
+    },
+    "viz_ssh_1": {
+      "type": "splunk.table",
+      "title": "openssh login/logout sessions (ES)",
+      "description": "openssh_login + openssh_logout paired into one session (SSH 1).",
+      "dataSources": {
+        "primary": "ds_ssh_1"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    },
+    "viz_ssh_2_spl": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "**Query \u00b7 OBTS SSH 2 - SSH sessions in Zeek alongside ES**\n```\nindex=zeek sourcetype=bro:conn:json id.resp_p=22\n| lookup mac_hosts host_ip AS id.resp_h OUTPUT host_short AS dest_mac\n| lookup mac_hosts host_ip AS id.orig_h OUTPUT host_short AS src_mac\n| table _time src_mac id.orig_h dest_mac id.resp_h duration conn_state orig_bytes resp_bytes uid\n```"
+      }
+    },
+    "viz_ssh_2": {
+      "type": "splunk.table",
+      "title": "SSH sessions in Zeek alongside ES",
+      "description": "Port 22 in Zeek; the 15:35 MAC-IT-01 \u2192 MAC-DEV-01 row is the ES session (SSH 2).",
+      "dataSources": {
+        "primary": "ds_ssh_2"
+      },
+      "options": {
+        "count": 5,
+        "fontSize": "large",
+        "showInternalFields": false,
+        "columnFormat": {
+          "time": {
+            "width": 130
+          },
+          "detail": {
+            "width": 760
+          },
+          "subject": {
+            "width": 500
+          },
+          "target_path": {
+            "width": 560
+          },
+          "process_path": {
+            "width": 520
+          },
+          "cmdline": {
+            "width": 560
+          },
+          "file_path": {
+            "width": 460
+          },
+          "plist": {
+            "width": 520
+          },
+          "writer_path": {
+            "width": 440
+          },
+          "runs": {
+            "width": 360
+          },
+          "btm_item_url": {
+            "width": 460
+          },
+          "btm_executable_path": {
+            "width": 340
+          },
+          "btm_instigator_path": {
+            "width": 340
+          },
+          "npm_cmd": {
+            "width": 220
+          },
+          "sh_cmd": {
+            "width": 300
+          },
+          "child_cmd": {
+            "width": 560
+          },
+          "cwd": {
+            "width": 460
+          },
+          "query": {
+            "width": 300
+          },
+          "sni": {
+            "width": 300
+          },
+          "src_ip": {
+            "width": 140
+          },
+          "id.resp_h": {
+            "width": 150
+          },
+          "first_seen": {
+            "width": 140
+          },
+          "server_name": {
+            "width": 240
+          },
+          "keychain_reader": {
+            "width": 460
+          }
+        }
+      }
+    }
+  },
+  "inputs": {},
+  "defaults": {},
+  "layout": {
+    "globalInputs": [],
+    "tabs": {
+      "items": [
+        {
+          "layoutId": "layout_overview",
+          "label": "Overview"
+        },
+        {
+          "layoutId": "layout_amos",
+          "label": "AMOS"
+        },
+        {
+          "layoutId": "layout_beavertail",
+          "label": "BeaverTail"
+        },
+        {
+          "layoutId": "layout_cloudmensis",
+          "label": "CloudMensis"
+        },
+        {
+          "layoutId": "layout_ssh",
+          "label": "SSH red herring"
+        }
+      ]
+    },
+    "layoutDefinitions": {
+      "layout_overview": {
+        "type": "grid",
+        "structure": [
+          {
+            "item": "viz_ov_intro",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "w": 1200,
+              "h": 110
+            }
+          },
+          {
+            "item": "viz_ov_mix_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 110,
+              "w": 1200,
+              "h": 118
+            }
+          },
+          {
+            "item": "viz_ov_mix",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 228,
+              "w": 1200,
+              "h": 380
+            }
+          },
+          {
+            "item": "viz_ov_stack_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 608,
+              "w": 1200,
+              "h": 142
+            }
+          },
+          {
+            "item": "viz_ov_stack",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 750,
+              "w": 1200,
+              "h": 470
+            }
+          }
+        ],
+        "options": {
+          "width": 1200
+        }
+      },
+      "layout_amos": {
+        "type": "grid",
+        "structure": [
+          {
+            "item": "viz_amos_chain_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "w": 1200,
+              "h": 166
+            }
+          },
+          {
+            "item": "viz_amos_chain",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 166,
+              "w": 1200,
+              "h": 560
+            }
+          },
+          {
+            "item": "viz_amos_1_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 726,
+              "w": 1200,
+              "h": 118
+            }
+          },
+          {
+            "item": "viz_amos_1",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 844,
+              "w": 1200,
+              "h": 210
+            }
+          },
+          {
+            "item": "viz_amos_1b_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 1054,
+              "w": 1200,
+              "h": 166
+            }
+          },
+          {
+            "item": "viz_amos_1b",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 1220,
+              "w": 1200,
+              "h": 210
+            }
+          },
+          {
+            "item": "viz_amos_3_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 1430,
+              "w": 1200,
+              "h": 118
+            }
+          },
+          {
+            "item": "viz_amos_3",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 1548,
+              "w": 1200,
+              "h": 250
+            }
+          },
+          {
+            "item": "viz_amos_3b_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 1798,
+              "w": 1200,
+              "h": 142
+            }
+          },
+          {
+            "item": "viz_amos_3b",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 1940,
+              "w": 1200,
+              "h": 210
+            }
+          },
+          {
+            "item": "viz_amos_4_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 2150,
+              "w": 1200,
+              "h": 334
+            }
+          },
+          {
+            "item": "viz_amos_4",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 2484,
+              "w": 1200,
+              "h": 190
+            }
+          }
+        ],
+        "options": {
+          "width": 1200
+        }
+      },
+      "layout_beavertail": {
+        "type": "grid",
+        "structure": [
+          {
+            "item": "viz_bt_chain_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "w": 1200,
+              "h": 286
+            }
+          },
+          {
+            "item": "viz_bt_chain",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 286,
+              "w": 1200,
+              "h": 300
+            }
+          },
+          {
+            "item": "viz_bt_1_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 586,
+              "w": 1200,
+              "h": 118
+            }
+          },
+          {
+            "item": "viz_bt_1",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 704,
+              "w": 1200,
+              "h": 240
+            }
+          },
+          {
+            "item": "viz_bt_3_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 944,
+              "w": 1200,
+              "h": 286
+            }
+          },
+          {
+            "item": "viz_bt_3",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 1230,
+              "w": 1200,
+              "h": 520
+            }
+          },
+          {
+            "item": "viz_bt_3b_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 1750,
+              "w": 1200,
+              "h": 334
+            }
+          },
+          {
+            "item": "viz_bt_3b",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 2084,
+              "w": 1200,
+              "h": 210
+            }
+          }
+        ],
+        "options": {
+          "width": 1200
+        }
+      },
+      "layout_cloudmensis": {
+        "type": "grid",
+        "structure": [
+          {
+            "item": "viz_cm_join_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "w": 1200,
+              "h": 214
+            }
+          },
+          {
+            "item": "viz_cm_join",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 214,
+              "w": 1200,
+              "h": 260
+            }
+          },
+          {
+            "item": "viz_cm_1_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 474,
+              "w": 1200,
+              "h": 142
+            }
+          },
+          {
+            "item": "viz_cm_1",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 616,
+              "w": 1200,
+              "h": 240
+            }
+          },
+          {
+            "item": "viz_cm_2_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 856,
+              "w": 1200,
+              "h": 118
+            }
+          },
+          {
+            "item": "viz_cm_2",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 974,
+              "w": 1200,
+              "h": 260
+            }
+          }
+        ],
+        "options": {
+          "width": 1200
+        }
+      },
+      "layout_ssh": {
+        "type": "grid",
+        "structure": [
+          {
+            "item": "viz_ssh_intro",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "w": 1200,
+              "h": 120
+            }
+          },
+          {
+            "item": "viz_ssh_1_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 120,
+              "w": 1200,
+              "h": 142
+            }
+          },
+          {
+            "item": "viz_ssh_1",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 262,
+              "w": 1200,
+              "h": 220
+            }
+          },
+          {
+            "item": "viz_ssh_2_spl",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 482,
+              "w": 1200,
+              "h": 166
+            }
+          },
+          {
+            "item": "viz_ssh_2",
+            "type": "block",
+            "position": {
+              "x": 0,
+              "y": 648,
+              "w": 1200,
+              "h": 260
+            }
+          }
+        ],
+        "options": {
+          "width": 1200
+        }
+      }
+    }
+  }
+}
+  ]]></definition>
+  <meta type="hiddenElements"><![CDATA[
+{"hideEdit": false, "hideOpenInSearch": false, "hideExport": false}
+  ]]></meta>
+</dashboard>
